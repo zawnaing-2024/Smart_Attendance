@@ -25,83 +25,28 @@ A comprehensive face recognition-based attendance management system with three p
 - **Status Indicators**: Visual feedback on detection status
 - **Multi-camera Support**: Monitor multiple cameras simultaneously
 
-## 🐳 Docker Installation (Ubuntu)
+## 🚀 Quick Installation (Ubuntu)
 
-### Prerequisites
-
-1. **Ubuntu 20.04 LTS or later**
-2. **Docker and Docker Compose**
-3. **Git**
-
-### Step 1: Install Docker and Docker Compose
+### One-Command Installation
 
 ```bash
-# Update system packages
-sudo apt update && sudo apt upgrade -y
-
-# Install required packages
-sudo apt install -y apt-transport-https ca-certificates curl gnupg lsb-release
-
-# Add Docker's official GPG key
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-
-# Add Docker repository
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-
-# Install Docker
-sudo apt update
-sudo apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
-
-# Add user to docker group
-sudo usermod -aG docker $USER
-
-# Enable Docker to start on boot
-sudo systemctl enable docker
-sudo systemctl start docker
-
-# Verify installation
-docker --version
-docker compose version
+# Download and run the unified deployment script
+curl -fsSL https://raw.githubusercontent.com/zawnaing-2024/Smart_Attendance/main/smart-attendance.sh | bash -s install
 ```
 
-### Step 2: Clone the Repository
+### Manual Installation
 
 ```bash
 # Clone the repository
 git clone https://github.com/zawnaing-2024/Smart_Attendance.git
 cd Smart_Attendance
 
-# Make scripts executable
-chmod +x setup_local.sh
-chmod +x update.sh
-chmod +x update_faces.sh
-chmod +x deploy-ubuntu.sh
+# Run installation
+chmod +x smart-attendance.sh
+./smart-attendance.sh install
 ```
 
-### Step 3: Configure Environment
-
-```bash
-# Copy environment file
-cp env.example .env
-
-# Edit environment variables (optional)
-nano .env
-```
-
-### Step 4: Build and Start Services
-
-```bash
-# Build and start all services
-docker compose up -d --build
-
-# Check service status
-docker compose ps
-
-# View logs
-docker compose logs -f
-```
-
-### Step 5: Access the Application
+### Access the Application
 
 - **Main Portal**: http://localhost:8080
 - **Admin Portal**: http://localhost:8080/login.php?user_type=admin
@@ -150,49 +95,58 @@ docker compose logs -f
 3. **Enable SMS**: Toggle SMS notifications
 4. **Test Messages**: Send test notifications
 
-## 🛠️ Maintenance
+## 🛠️ Maintenance & Management
 
-### Update System
+### Unified Script Commands
+
+The `smart-attendance.sh` script handles all operations:
 
 ```bash
-# Pull latest changes
-git pull origin main
+# Update system
+./smart-attendance.sh update
 
-# Rebuild and restart services
-docker compose down
-docker compose up -d --build
+# Start services
+./smart-attendance.sh start
+
+# Stop services
+./smart-attendance.sh stop
+
+# Restart services
+./smart-attendance.sh restart
+
+# View service status
+./smart-attendance.sh status
+
+# View logs
+./smart-attendance.sh logs
+
+# Backup database
+./smart-attendance.sh backup
+
+# Restore database
+./smart-attendance.sh restore
+
+# Fix Docker permissions
+./smart-attendance.sh fix-docker
+
+# Clean up containers
+./smart-attendance.sh clean
+
+# Show help
+./smart-attendance.sh help
 ```
 
-### Backup Database
+### Quick Commands
 
 ```bash
-# Create backup
-docker exec smartattendance-db-1 mysqldump -u attendance_user -pattendance_pass smart_attendance > backup.sql
+# Update and restart
+./smart-attendance.sh update
 
-# Restore backup
-docker exec -i smartattendance-db-1 mysql -u attendance_user -pattendance_pass smart_attendance < backup.sql
-```
+# Check status
+./smart-attendance.sh status
 
-### View Logs
-
-```bash
-# All services
-docker compose logs -f
-
-# Specific service
-docker compose logs -f face_detection
-docker compose logs -f web
-docker compose logs -f db
-```
-
-### Restart Services
-
-```bash
-# Restart all services
-docker compose restart
-
-# Restart specific service
-docker compose restart face_detection
+# View logs
+./smart-attendance.sh logs
 ```
 
 ## 🔍 Troubleshooting
@@ -221,19 +175,20 @@ docker compose restart face_detection
 ### Debug Commands
 
 ```bash
-# Check container status
+# Check service status
+./smart-attendance.sh status
+
+# View logs
+./smart-attendance.sh logs
+
+# Fix Docker permissions
+./smart-attendance.sh fix-docker
+
+# Manual Docker commands (if needed)
 docker compose ps
-
-# View service logs
 docker compose logs [service_name]
-
-# Access container shell
 docker exec -it smartattendance-web-1 bash
 docker exec -it smartattendance-db-1 mysql -u attendance_user -pattendance_pass
-
-# Check network connectivity
-docker network ls
-docker network inspect smartattendance_attendance_network
 ```
 
 ## 📊 System Requirements

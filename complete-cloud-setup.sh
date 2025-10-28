@@ -82,6 +82,38 @@ else
     print_success "Docker already installed!"
 fi
 
+# Step 2.5: Fix Docker permissions
+print_step "2.5. Fixing Docker permissions..."
+if ! docker ps > /dev/null 2>&1; then
+    print_status "Docker permission issue detected. Fixing..."
+    
+    # Start Docker service
+    sudo systemctl start docker
+    sudo systemctl enable docker
+    
+    # Fix Docker socket permissions
+    sudo chmod 666 /var/run/docker.sock 2>/dev/null || true
+    
+    # Restart Docker service
+    sudo systemctl restart docker
+    
+    # Wait for Docker to be ready
+    sleep 5
+    
+    # Test Docker access
+    if docker ps > /dev/null 2>&1; then
+        print_success "Docker permissions fixed!"
+    else
+        print_warning "Docker permissions still not working. You may need to log out and log back in."
+        print_status "Alternatively, try running: newgrp docker"
+        print_status "Or restart your session completely."
+        print_status "Then run this script again."
+        exit 1
+    fi
+else
+    print_success "Docker permissions are working!"
+fi
+
 # Step 3: Install additional tools
 print_step "3. Installing additional tools..."
 sudo apt install -y git curl wget net-tools telnet htop nano vim

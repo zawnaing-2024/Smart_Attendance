@@ -1,7 +1,9 @@
 FROM python:3.9-slim
 
-# Install system dependencies
+# Install system dependencies with better error handling
 RUN apt-get update && apt-get install -y \
+    --no-install-recommends \
+    --fix-missing \
     libjpeg-dev \
     libpng-dev \
     libtiff-dev \
@@ -14,7 +16,15 @@ RUN apt-get update && apt-get install -y \
     libavcodec-dev \
     libavformat-dev \
     libswscale-dev \
-    && rm -rf /var/lib/apt/lists/*
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgomp1 \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -rf /tmp/* \
+    && rm -rf /var/tmp/*
 
 # Install Python dependencies
 COPY requirements.txt /app/requirements.txt

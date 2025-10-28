@@ -64,6 +64,7 @@ show_usage() {
     echo "  backup      - Backup database"
     echo "  restore     - Restore database from backup"
     echo "  fix-docker  - Fix Docker permission issues"
+    echo "  fix-build   - Fix Docker build issues"
     echo "  clean       - Clean up containers and images"
     echo "  help        - Show this help message"
     echo
@@ -230,8 +231,37 @@ EOF
 start_services() {
     print_status "Starting Docker services..."
     
-    # Build and start all services
-    docker compose up -d --build
+    # Try to build and start all services
+    if docker compose up -d --build; then
+        print_success "Services started successfully!"
+    else
+        print_warning "Initial build failed. Trying alternative approach..."
+        
+        # Try with no-cache build
+        print_status "Trying with no-cache build..."
+        if docker compose build --no-cache && docker compose up -d; then
+            print_success "Services started with no-cache build!"
+        else
+            print_error "Build failed. Trying alternative Dockerfile..."
+            
+            # Try alternative Dockerfile
+            if [[ -f "Dockerfile.python.backup" ]]; then
+                print_status "Using alternative Dockerfile..."
+                cp Dockerfile.python.backup Dockerfile.python
+                if docker compose build --no-cache && docker compose up -d; then
+                    print_success "Services started with alternative Dockerfile!"
+                else
+                    print_error "All build attempts failed. Please check the logs."
+                    print_status "Run: docker compose logs face_detection"
+                    exit 1
+                fi
+            else
+                print_error "Build failed and no alternative Dockerfile found."
+                print_status "Please check the logs: docker compose logs face_detection"
+                exit 1
+            fi
+        fi
+    fi
     
     # Wait for services to be ready
     print_status "Waiting for services to be ready..."
@@ -240,8 +270,6 @@ start_services() {
     # Check service status
     print_status "Checking service status..."
     docker compose ps
-    
-    print_success "All services started successfully!"
 }
 
 # Function to stop services
@@ -354,6 +382,35 @@ fix_docker_permissions() {
         else
             print_status "Please log out and log back in, then run: docker ps"
         fi
+    fi
+}
+
+# Function to fix Docker build issues
+fix_docker_build() {
+    print_status "Fixing Docker build issues..."
+    
+    cd "$PROJECT_DIR"
+    
+    print_status "Cleaning up Docker resources..."
+    docker compose down -v --remove-orphans
+    docker system prune -f
+    
+    print_status "Trying alternative Dockerfile..."
+    if [[ -f "Dockerfile.python.backup" ]]; then
+        cp Dockerfile.python.backup Dockerfile.python
+        print_success "Using alternative Dockerfile"
+    else
+        print_warning "No alternative Dockerfile found"
+    fi
+    
+    print_status "Attempting rebuild with no cache..."
+    if docker compose build --no-cache; then
+        print_success "Build successful!"
+        print_status "Starting services..."
+        docker compose up -d
+    else
+        print_error "Build still failing. Check logs: docker compose logs face_detection"
+        exit 1
     fi
 }
 
@@ -519,6 +576,9 @@ main() {
             ;;
         "fix-docker")
             fix_docker_permissions
+            ;;
+        "fix-build")
+            fix_docker_build
             ;;
         "clean")
             cd "$PROJECT_DIR" && clean_up

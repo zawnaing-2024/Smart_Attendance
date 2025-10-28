@@ -173,11 +173,20 @@ setup_repository() {
     if [[ -d "$PROJECT_DIR" ]]; then
         print_status "Updating existing repository..."
         cd "$PROJECT_DIR"
+        
+        # Fix git ownership issues
+        print_status "Fixing git ownership..."
+        git config --global --add safe.directory "$(pwd)" 2>/dev/null || true
+        sudo chown -R $USER:$USER . 2>/dev/null || true
+        
         git pull origin main
         cd ..
     else
         print_status "Cloning repository..."
         git clone "$REPO_URL" "$PROJECT_DIR"
+        
+        # Fix ownership if cloned as root
+        sudo chown -R $USER:$USER "$PROJECT_DIR" 2>/dev/null || true
     fi
     
     cd "$PROJECT_DIR"
@@ -244,8 +253,30 @@ start_services() {
         else
             print_error "Build failed. Trying alternative Dockerfile..."
             
-            # Try alternative Dockerfile
-            if [[ -f "Dockerfile.python.backup" ]]; then
+            # Try minimal Dockerfile first
+            if [[ -f "Dockerfile.python.minimal" ]]; then
+                print_status "Using minimal Dockerfile..."
+                cp Dockerfile.python.minimal Dockerfile.python
+                if docker compose build --no-cache && docker compose up -d; then
+                    print_success "Services started with minimal Dockerfile!"
+                else
+                    print_error "Minimal Dockerfile failed. Trying alternative..."
+                    if [[ -f "Dockerfile.python.backup" ]]; then
+                        cp Dockerfile.python.backup Dockerfile.python
+                        if docker compose build --no-cache && docker compose up -d; then
+                            print_success "Services started with alternative Dockerfile!"
+                        else
+                            print_error "All build attempts failed. Please check the logs."
+                            print_status "Run: docker compose logs face_detection"
+                            exit 1
+                        fi
+                    else
+                        print_error "All build attempts failed. Please check the logs."
+                        print_status "Run: docker compose logs face_detection"
+                        exit 1
+                    fi
+                fi
+            elif [[ -f "Dockerfile.python.backup" ]]; then
                 print_status "Using alternative Dockerfile..."
                 cp Dockerfile.python.backup Dockerfile.python
                 if docker compose build --no-cache && docker compose up -d; then
@@ -395,8 +426,11 @@ fix_docker_build() {
     docker compose down -v --remove-orphans
     docker system prune -f
     
-    print_status "Trying alternative Dockerfile..."
-    if [[ -f "Dockerfile.python.backup" ]]; then
+    print_status "Trying minimal Dockerfile..."
+    if [[ -f "Dockerfile.python.minimal" ]]; then
+        cp Dockerfile.python.minimal Dockerfile.python
+        print_success "Using minimal Dockerfile"
+    elif [[ -f "Dockerfile.python.backup" ]]; then
         cp Dockerfile.python.backup Dockerfile.python
         print_success "Using alternative Dockerfile"
     else
@@ -409,8 +443,29 @@ fix_docker_build() {
         print_status "Starting services..."
         docker compose up -d
     else
-        print_error "Build still failing. Check logs: docker compose logs face_detection"
-        exit 1
+        print_error "Build still failing. Trying without face recognition..."
+        print_status "Creating simplified version without face recognition..."
+        
+        # Create a simplified requirements.txt without face-recognition
+        cat > requirements.txt << EOF
+numpy==1.24.3
+Pillow==10.0.1
+Flask==2.3.3
+redis==4.6.0
+pymysql==1.1.0
+requests==2.31.0
+python-dotenv==1.0.0
+opencv-python-headless==4.8.1.78
+EOF
+        
+        print_status "Rebuilding with simplified requirements..."
+        if docker compose build --no-cache && docker compose up -d; then
+            print_success "Build successful with simplified version!"
+            print_warning "Note: Face recognition is disabled. You can enable it later."
+        else
+            print_error "All build attempts failed. Check logs: docker compose logs face_detection"
+            exit 1
+        fi
     fi
 }
 

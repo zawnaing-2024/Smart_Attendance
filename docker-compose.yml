@@ -1,0 +1,72 @@
+services:
+  web:
+    build: .
+    ports:
+      - "8080:80"
+    volumes:
+      - ./src:/var/www/html
+      - ./uploads:/var/www/html/uploads
+    depends_on:
+      - db
+      - redis
+    environment:
+      - DB_HOST=db
+      - DB_USER=attendance_user
+      - DB_PASS=attendance_pass
+      - DB_NAME=smart_attendance
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    networks:
+      - attendance_network
+
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: smart_attendance
+      MYSQL_USER: attendance_user
+      MYSQL_PASSWORD: attendance_pass
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "3306:3306"
+    networks:
+      - attendance_network
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - attendance_network
+
+  face_detection:
+    build:
+      context: .
+      dockerfile: Dockerfile.python
+    ports:
+      - "5001:5000"
+    volumes:
+      - ./src:/app/src
+      - ./uploads:/app/uploads
+      - ./face_models:/app/face_models
+    environment:
+      - DB_HOST=db
+      - DB_USER=attendance_user
+      - DB_PASS=attendance_pass
+      - DB_NAME=smart_attendance
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - db
+      - redis
+    networks:
+      - attendance_network
+
+volumes:
+  mysql_data:
+
+networks:
+  attendance_network:
+    driver: bridge

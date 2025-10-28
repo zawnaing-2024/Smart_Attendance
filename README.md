@@ -1,214 +1,156 @@
 # Smart Attendance Management System
 
-A comprehensive attendance management system with real-time face detection, automated SMS notifications, and multi-portal access for schools.
+A comprehensive face recognition-based attendance management system with three portals: Admin, Teacher, and Live View. The system uses Docker for easy deployment and includes time-frame controls for face detection.
 
 ## 🚀 Features
 
-- **Real-time Face Detection**: Automated student recognition using CCTV cameras
-- **Multi-Portal Access**: Admin, Teacher, and Live View portals
-- **SMS Notifications**: Automatic alerts to parents when students enter/leave
-- **CCTV Integration**: Support for RTSP camera streams
-- **Docker Deployment**: Easy setup and deployment with Docker Compose
-- **Database Management**: MySQL database with automated initialization
-- **Redis Caching**: Fast data access and messaging
+### Admin Portal
+- **Teacher Management**: Add, edit, delete teacher accounts with grade assignments
+- **Student Management**: Add, edit, delete students with face image uploads
+- **Camera Management**: Configure CCTV cameras with RTSP streams
+- **Grade Management**: Organize teachers and students by grades/classes
+- **Live View**: Real-time face detection with time-frame controls
+- **Settings**: Configure detection schedules, SMS settings, and system parameters
+- **Reports**: View attendance records and analytics
 
-## 🏗️ System Architecture
+### Teacher Portal
+- **Dashboard**: View assigned students and attendance statistics
+- **Student Management**: Manage students for assigned grade only
+- **Live View**: Monitor face detection for assigned students
+- **Reports**: Generate attendance reports for assigned students
 
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Admin Portal  │    │  Teacher Portal │    │  Live View      │
-│   (PHP/Apache)  │    │   (PHP/Apache)  │    │   (Python/Flask)│
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-         │                       │                       │
-         └───────────────────────┼───────────────────────┘
-                                 │
-                    ┌─────────────────┐
-                    │   MySQL Database │
-                    │   (Port 3306)   │
-                    └─────────────────┘
-                                 │
-                    ┌─────────────────┐
-                    │  Redis Cache    │
-                    │   (Port 6379)   │
-                    └─────────────────┘
-```
+### Live View Portal
+- **Real-time Monitoring**: Live camera feeds with face detection
+- **Time-frame Control**: Manual scheduling of detection periods
+- **Status Indicators**: Visual feedback on detection status
+- **Multi-camera Support**: Monitor multiple cameras simultaneously
 
-## 📋 Prerequisites
+## 🐳 Docker Installation (Ubuntu)
 
-- Docker and Docker Compose installed
-- Git (for cloning the repository)
-- At least 4GB RAM available for Docker
-- Ports 8080, 3306, 6379, and 5001 available
+### Prerequisites
 
-## 🛠️ Installation & Setup
+1. **Ubuntu 20.04 LTS or later**
+2. **Docker and Docker Compose**
+3. **Git**
 
-### 1. Clone the Repository
+### Step 1: Install Docker and Docker Compose
 
 ```bash
+# Update system packages
+sudo apt update && sudo apt upgrade -y
+
+# Install required packages
+sudo apt install -y apt-transport-https ca-certificates curl gnupg lsb-release
+
+# Add Docker's official GPG key
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+
+# Add Docker repository
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+# Install Docker
+sudo apt update
+sudo apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+
+# Add user to docker group
+sudo usermod -aG docker $USER
+
+# Enable Docker to start on boot
+sudo systemctl enable docker
+sudo systemctl start docker
+
+# Verify installation
+docker --version
+docker compose version
+```
+
+### Step 2: Clone the Repository
+
+```bash
+# Clone the repository
 git clone https://github.com/zawnaing-2024/Smart_Attendance.git
 cd Smart_Attendance
+
+# Make scripts executable
+chmod +x setup_local.sh
+chmod +x update.sh
+chmod +x update_faces.sh
+chmod +x deploy-ubuntu.sh
 ```
 
-### 2. Start the System
+### Step 3: Configure Environment
 
 ```bash
-# Start all services
-docker-compose up -d
+# Copy environment file
+cp env.example .env
 
-# Check status
-docker-compose ps
+# Edit environment variables (optional)
+nano .env
 ```
 
-### 3. Access the System
+### Step 4: Build and Start Services
+
+```bash
+# Build and start all services
+docker compose up -d --build
+
+# Check service status
+docker compose ps
+
+# View logs
+docker compose logs -f
+```
+
+### Step 5: Access the Application
 
 - **Main Portal**: http://localhost:8080
-- **Live Face Detection**: http://localhost:5001
-- **Database**: localhost:3306 (user: `attendance_user`, password: `attendance_pass`)
-- **Redis**: localhost:6379
+- **Admin Portal**: http://localhost:8080/login.php?user_type=admin
+- **Teacher Portal**: http://localhost:8080/login.php?user_type=teacher
+- **Live View**: http://localhost:8080/admin/live_view.php
+- **Python Service**: http://localhost:5001
+
+### Default Login Credentials
+
+- **Admin**: username: `admin`, password: `password`
+- **Teacher**: Create teacher accounts through admin portal
 
 ## 🔧 Configuration
 
-### Database Configuration
+### Camera Setup
 
-The system automatically creates the following tables:
-- `admins` - Admin user accounts
-- `teachers` - Teacher accounts
-- `students` - Student information with face encodings
-- `cameras` - CCTV camera configurations
-- `attendance` - Attendance records
-- `sms_settings` - SMS API configuration
+1. **Add Cameras**: Go to Admin → Cameras
+2. **Configure RTSP**: Enter camera RTSP URL, username, password
+3. **Test Connection**: Verify camera accessibility
 
-### Environment Variables
+### Detection Schedule
 
-Key environment variables in `docker-compose.yml`:
+1. **Go to Settings**: Admin → Settings
+2. **Face Detection Schedule**: Configure time frames
+3. **Set Active Times**: Choose days and hours for detection
+4. **Live View Always On**: Camera feeds remain visible
 
-```yaml
-environment:
-  - DB_HOST=db
-  - DB_USER=attendance_user
-  - DB_PASS=attendance_pass
-  - DB_NAME=smart_attendance
-  - REDIS_HOST=redis
-  - REDIS_PORT=6379
-```
+### Student Management
 
-## 📱 Portal Access
+1. **Upload Face Images**: Add student photos during registration
+2. **Generate Encodings**: Run face encoding generation
+3. **Test Recognition**: Verify face detection accuracy
 
-### Admin Portal
-- **URL**: http://localhost:8080/admin/
-- **Features**:
-  - Manage teacher accounts
-  - Add/edit/delete students
-  - Configure CCTV cameras
-  - View attendance reports
-  - SMS settings management
+## 📱 SMS Integration
 
-### Teacher Portal
-- **URL**: http://localhost:8080/teacher/
-- **Features**:
-  - View class attendance
-  - Generate attendance reports
-  - Student management for assigned classes
+### Supported Providers
 
-### Live View Portal
-- **URL**: http://localhost:5001
-- **Features**:
-  - Real-time face detection feed
-  - Live attendance monitoring
-  - Student recognition display
+- **Twilio**: Account SID, Auth Token, Phone Number
+- **Nexmo (Vonage)**: API Key, API Secret, From Number
+- **TextLocal**: API Key, Sender Name
 
-## 🔄 Development & Testing
+### Configuration
 
-### Local Development
+1. **Go to Settings**: Admin → Settings
+2. **SMS Configuration**: Enter provider details
+3. **Enable SMS**: Toggle SMS notifications
+4. **Test Messages**: Send test notifications
 
-```bash
-# Rebuild containers after code changes
-docker-compose down
-docker-compose up --build -d
-
-# View logs
-docker-compose logs -f
-
-# Access container shell
-docker-compose exec web bash
-docker-compose exec face_detection bash
-```
-
-### Testing Face Detection
-
-The face detection service currently runs in simulation mode for testing. To test:
-
-1. Access http://localhost:5001
-2. You'll see a live feed with simulated face detection
-3. The system generates random student names and bounding boxes
-
-## 🚀 Production Deployment
-
-### Ubuntu Server Deployment
-
-1. **Install Docker on Ubuntu**:
-```bash
-sudo apt update
-sudo apt install docker.io docker-compose
-sudo systemctl start docker
-sudo systemctl enable docker
-```
-
-2. **Clone and Deploy**:
-```bash
-git clone https://github.com/zawnaing-2024/Smart_Attendance.git
-cd Smart_Attendance
-docker-compose up -d
-```
-
-3. **Configure Firewall**:
-```bash
-sudo ufw allow 8080
-sudo ufw allow 5001
-sudo ufw enable
-```
-
-### Production Environment Variables
-
-For production, update the following in `docker-compose.yml`:
-
-```yaml
-environment:
-  - DB_HOST=your-db-host
-  - DB_USER=your-db-user
-  - DB_PASS=your-secure-password
-  - DB_NAME=smart_attendance
-  - REDIS_HOST=your-redis-host
-  - REDIS_PORT=6379
-```
-
-## 📊 Monitoring & Maintenance
-
-### Health Checks
-
-```bash
-# Check all services
-docker-compose ps
-
-# Check specific service logs
-docker-compose logs web
-docker-compose logs face_detection
-docker-compose logs db
-docker-compose logs redis
-
-# Check resource usage
-docker stats
-```
-
-### Backup Database
-
-```bash
-# Create backup
-docker-compose exec db mysqldump -u attendance_user -pattendance_pass smart_attendance > backup.sql
-
-# Restore backup
-docker-compose exec -T db mysql -u attendance_user -pattendance_pass smart_attendance < backup.sql
-```
+## 🛠️ Maintenance
 
 ### Update System
 
@@ -216,116 +158,133 @@ docker-compose exec -T db mysql -u attendance_user -pattendance_pass smart_atten
 # Pull latest changes
 git pull origin main
 
-# Rebuild and restart
-docker-compose down
-docker-compose up --build -d
+# Rebuild and restart services
+docker compose down
+docker compose up -d --build
 ```
 
-## 🔧 Troubleshooting
+### Backup Database
+
+```bash
+# Create backup
+docker exec smartattendance-db-1 mysqldump -u attendance_user -pattendance_pass smart_attendance > backup.sql
+
+# Restore backup
+docker exec -i smartattendance-db-1 mysql -u attendance_user -pattendance_pass smart_attendance < backup.sql
+```
+
+### View Logs
+
+```bash
+# All services
+docker compose logs -f
+
+# Specific service
+docker compose logs -f face_detection
+docker compose logs -f web
+docker compose logs -f db
+```
+
+### Restart Services
+
+```bash
+# Restart all services
+docker compose restart
+
+# Restart specific service
+docker compose restart face_detection
+```
+
+## 🔍 Troubleshooting
 
 ### Common Issues
 
-1. **Port Already in Use**:
-   ```bash
-   # Check what's using the port
-   sudo netstat -tulpn | grep :8080
-   
-   # Kill the process or change port in docker-compose.yml
-   ```
+1. **Camera Not Showing**
+   - Check RTSP URL format
+   - Verify camera credentials
+   - Test network connectivity
 
-2. **Database Connection Issues**:
-   ```bash
-   # Check database logs
-   docker-compose logs db
-   
-   # Restart database
-   docker-compose restart db
-   ```
+2. **Face Detection Not Working**
+   - Check detection schedule settings
+   - Verify face encodings are generated
+   - Check Python service logs
 
-3. **Face Detection Service Not Starting**:
-   ```bash
-   # Check Python service logs
-   docker-compose logs face_detection
-   
-   # Rebuild Python container
-   docker-compose up --build face_detection
-   ```
+3. **Database Connection Issues**
+   - Verify database container is running
+   - Check environment variables
+   - Review database logs
 
-4. **Permission Issues**:
-   ```bash
-   # Fix file permissions
-   sudo chown -R $USER:$USER .
-   chmod -R 755 src/
-   ```
+4. **Port Conflicts**
+   - Check if ports 8080, 5001, 3306 are available
+   - Modify docker-compose.yml if needed
 
-### Log Locations
+### Debug Commands
 
-- **Web Service**: `docker-compose logs web`
-- **Face Detection**: `docker-compose logs face_detection`
-- **Database**: `docker-compose logs db`
-- **Redis**: `docker-compose logs redis`
+```bash
+# Check container status
+docker compose ps
 
-## 📝 API Documentation
+# View service logs
+docker compose logs [service_name]
 
-### Face Detection API
+# Access container shell
+docker exec -it smartattendance-web-1 bash
+docker exec -it smartattendance-db-1 mysql -u attendance_user -pattendance_pass
 
-- **GET** `/` - Live view page
-- **GET** `/video_feed` - Video stream endpoint
-
-### Database API (Internal)
-
-The system uses MySQL with the following key tables:
-
-```sql
--- Students table
-CREATE TABLE students (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    name VARCHAR(255) NOT NULL,
-    roll_number VARCHAR(50) UNIQUE,
-    grade VARCHAR(50),
-    face_encoding TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Attendance table
-CREATE TABLE attendance (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    student_id INT,
-    camera_id INT,
-    direction ENUM('in', 'out'),
-    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (student_id) REFERENCES students(id)
-);
+# Check network connectivity
+docker network ls
+docker network inspect smartattendance_attendance_network
 ```
+
+## 📊 System Requirements
+
+### Minimum Requirements
+- **CPU**: 2 cores
+- **RAM**: 4GB
+- **Storage**: 20GB free space
+- **Network**: Stable internet connection
+
+### Recommended Requirements
+- **CPU**: 4+ cores
+- **RAM**: 8GB+
+- **Storage**: 50GB+ SSD
+- **GPU**: CUDA-compatible (for faster face processing)
+
+## 🔐 Security Considerations
+
+1. **Change Default Passwords**: Update admin and database passwords
+2. **Use HTTPS**: Configure SSL certificates for production
+3. **Firewall**: Restrict access to necessary ports only
+4. **Regular Updates**: Keep system and dependencies updated
+5. **Backup Strategy**: Implement regular database backups
+
+## 📞 Support
+
+For issues and questions:
+- **GitHub Issues**: Create an issue on the repository
+- **Documentation**: Check this README and code comments
+- **Community**: Join discussions in the repository
+
+## 📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
+4. Submit a pull request
 
-## 📄 License
+## 🎯 Roadmap
 
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 📞 Support
-
-For support and questions:
-- Create an issue on GitHub
-- Contact: [Your Contact Information]
-
-## 🔮 Future Enhancements
-
-- [ ] Real OpenCV face recognition implementation
-- [ ] Mobile app for parents
+- [ ] Mobile app integration
 - [ ] Advanced analytics dashboard
-- [ ] Multi-school support
-- [ ] Integration with school management systems
-- [ ] AI-powered attendance predictions
-- [ ] Biometric integration (fingerprint, iris)
+- [ ] Multi-language support
+- [ ] Cloud deployment options
+- [ ] API documentation
+- [ ] Automated testing suite
 
 ---
 
-**Note**: This system is currently in development mode with simulated face detection. For production use, implement real face recognition using OpenCV or similar libraries.
+**Made with ❤️ for educational institutions**
